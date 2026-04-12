@@ -17,6 +17,8 @@ async function createRecord(req, res) {
             data.linkedin = req.body.linkedin ?? data.linkedin
             data.instagram = req.body.instagram ?? data.instagram
             data.youtube = req.body.youtube ?? data.youtube
+            data.privacyPolicy = req.body.privacyPolicy ?? data.privacyPolicy
+            data.termsAndCondition = req.body.termsAndCondition ?? data.termsAndCondition
             await data.save()
         }
         else {

@@ -48,6 +48,14 @@ const SettingSchema = new mongoose.Schema({
     youtube: {
         type: String,
         default: ""
+    },
+    privacyPolicy: {
+        type: String,
+        default: ""
+    },
+    termsAndCondition: {
+        type: String,
+        default: ""
     }
 })
 const Setting = new mongoose.model("Setting", SettingSchema)
