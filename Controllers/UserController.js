@@ -33,6 +33,7 @@ async function createRecord(req, res) {
                     try {
                         let data = new User(req.body)
                         data.password = hash
+                        data.role = "User"
                         await data.save()
                         res.send({
                             result: "Done",
@@ -49,11 +50,11 @@ async function createRecord(req, res) {
                         //                 <h1 style="color:#ffffff; margin:0; font-size:24px;">${process.env.SITE_NAME}</h1>
                         //             </td>
                         //             </tr>
-                
+
                         //             <tr>
                         //             <td style="padding:30px; color:#333333;">
                         //                 <h2 style="color:#0b3d91; margin-top:0;">Welcome to ${process.env.SITE_NAME} 🎉</h2>
-                                        
+
                         //                 <p style="font-size:16px; line-height:24px; margin:15px 0;">
                         //                 Your account has been successfully created! We’re excited to have you join the ${process.env.SITE_NAME} family.
                         //                 </p>
@@ -80,8 +81,8 @@ async function createRecord(req, res) {
                         //             </td>
                         //             </tr>
 
-        
-        
+
+
                         //             <tr>
                         //             <td style="background-color:#0b3d91; padding:15px; text-align:center;">
                         //                 <p style="color:#ffffff; font-size:12px; margin:0;">
@@ -172,6 +173,7 @@ async function updateRecord(req, res) {
             data.username = req.body.username ?? data.username
             data.email = req.body.email ?? data.email
             data.phone = req.body.phone ?? data.phone
+            data.role = req.body.role ?? data.role
             await data.save()
             res.send({
                 result: "Done",

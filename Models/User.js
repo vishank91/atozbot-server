@@ -28,6 +28,10 @@ const UserSchema = new mongoose.Schema({
         ref: "Pricing",
         default: null
     },
+    role: {
+        type: String,
+        default: "User"
+    },
     status: {
         type: Boolean,
         default: true
