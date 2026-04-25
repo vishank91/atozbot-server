@@ -1,6 +1,9 @@
 const jwt = require("jsonwebtoken")
+const Razorpay = require("razorpay")
+
 
 const User = require("../models/User")
+
 const passwordValidator = require("password-validator")
 const bcrypt = require("bcrypt")
 // const mailer = require("../mailer/index")
@@ -18,6 +21,50 @@ schema
     .has().symbols(1)                               // Must have at least 1 special Character
     .has().not().spaces()                           // Should not have spaces
     .is().not().oneOf(['Passw0rd', 'Password123']); // Blacklist these values
+
+
+
+//Payment API
+async function order(req, res) {
+    try {
+        const instance = new Razorpay({
+            key_id: process.env.RPKEYID,
+            key_secret: process.env.RPSECRETKEY,
+        });
+
+        const options = {
+            amount: req.body.amount * 100,
+            currency: "INR"
+        };
+
+        instance.orders.create(options, (error, order) => {
+            if (error) {
+                console.log(error);
+                return res.status(500).json({ message: "Something Went Wrong!" });
+            }
+            res.json({ data: order });
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Internal Server Error!" });
+        console.log(error);
+    }
+}
+
+async function verifyOrder(req, res) {
+    try {
+        var user = await User.findOne({ _id: req.body.userId })
+        user.plan = req.body.planId
+        user.planDetails = {
+            rppid: req.body.razorpay_payment_id,
+            paymentDate: new Date()
+        }
+        await user.save()
+        res.status(200).send({ result: "Done", user: user, message: "Payment SuccessFull" });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: "Internal Server Error!" });
+    }
+}
 
 async function createRecord(req, res) {
     if (req.body.password) {
@@ -129,6 +176,7 @@ async function createRecord(req, res) {
 async function getRecord(req, res) {
     try {
         let data = await User.find().sort({ _id: -1 })
+            .populate("plan", ["name"])
         res.send({
             result: "Done",
             count: data.length,
@@ -144,7 +192,8 @@ async function getRecord(req, res) {
 
 async function getSingleRecord(req, res) {
     try {
-        let data = await User.findOne({ _id: req.params._id })
+        let data = await User.findOne({ _id: req.params._id }).populate("plan", ["name"])
+        
         if (data) {
             res.send({
                 result: "Done",
@@ -158,6 +207,7 @@ async function getSingleRecord(req, res) {
             })
         }
     } catch (error) {
+        console.log(error)
         res.status(500).send({
             result: "Fail",
             reason: "Internal Server Error"
@@ -444,4 +494,6 @@ module.exports = {
     forgetPassword1: forgetPassword1,
     forgetPassword2: forgetPassword2,
     forgetPassword3: forgetPassword3,
+    order: order,
+    verifyOrder: verifyOrder
 }

@@ -9,6 +9,8 @@ const {
     forgetPassword1,
     forgetPassword2,
     forgetPassword3,
+    order,
+    verifyOrder,
 } = require("../controllers/UserController")
 
 UserRouter.post("", createRecord)
@@ -20,5 +22,8 @@ UserRouter.post("/login", login)
 UserRouter.post("/forget-password-1", forgetPassword1)
 UserRouter.post("/forget-password-2", forgetPassword2)
 UserRouter.post("/forget-password-3", forgetPassword3)
+UserRouter.post("/order", order)
+UserRouter.post("/verify", verifyOrder)
+
 
 module.exports = UserRouter
