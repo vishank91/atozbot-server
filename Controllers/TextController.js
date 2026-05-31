@@ -1,57 +1,44 @@
 const { GoogleGenAI } = require("@google/genai");
+const Text = require("../Models/Text");
 
 const ai = new GoogleGenAI({
     apiKey: process.env.GEMINI_API_KEY
 });
 
-const Text = require("../Models/Text");
-
-
-// ======================
-// Generate Chat Title
-// ======================
 async function generateTitle(input) {
     try {
-
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: `Create an exact 3-4 word title for following query: "${input}"`,
+            contents: `Create an exact 3-5 word title for this query: "${input}". Return only the title without quotes or special characters.`
         });
 
-        return response.text?.replaceAll('"', "") || "New Chat";
-
-    } catch (error) {
-        console.log("Title Error:", error);
+        return response.text?.replace(/["']/g, "").trim() || "New Chat";
+    }
+    catch (error) {
+        console.log(error);
         return "New Chat";
     }
 }
 
-
-// ======================
-// Create Chat Record
-// ======================
 async function createRecord(req, res) {
-
     try {
-
         const { _id, userid, input } = req.body;
 
         if (!input) {
-            return res.status(400).send({
+            return res.status(400).json({
                 result: "Fail",
                 reason: "Input is required"
             });
         }
 
         let chat;
+        let isNewChat = false;
 
-        // Existing Chat
         if (_id) {
-
             chat = await Text.findById(_id);
 
             if (!chat) {
-                return res.status(404).send({
+                return res.status(404).json({
                     result: "Fail",
                     reason: "Chat not found"
                 });
@@ -61,11 +48,9 @@ async function createRecord(req, res) {
                 type: "Request",
                 data: input
             });
-
         }
-
-        // New Chat
         else {
+            isNewChat = true;
 
             chat = new Text({
                 user: userid || null,
@@ -77,146 +62,130 @@ async function createRecord(req, res) {
                     }
                 ]
             });
-
         }
 
         await chat.save();
 
+        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
 
-        // Gemini Response
-        const response = await ai.models.generateContent({
+        const metadata = {
+            type: "meta",
+            _id: chat._id,
+            title: chat.title,
+            isNewChat
+        };
+
+        res.write(JSON.stringify(metadata) + "\n\n");
+
+        const stream = await ai.models.generateContentStream({
             model: "gemini-2.5-flash",
-            contents: input,
+            contents: input
         });
 
+        let fullResponse = "";
+
+        for await (const chunk of stream) {
+            const text = chunk.text || "";
+
+            fullResponse += text;
+
+            res.write(text);
+        }
 
         chat.chats.push({
             type: "Response",
-            data: response.text || "No Response"
+            data: fullResponse
         });
 
         await chat.save();
 
-
-        res.send({
-            result: "Done",
-            chat: chat
-        });
-
+        res.end();
     }
-
     catch (error) {
-
-        console.log("Create Record Error:", error);
-
-        res.status(500).send({
-            result: "Fail",
-            reason: "Internal Server Error"
-        });
-
-    }
-}
-
-
-// ======================
-// Get All Chats
-// ======================
-async function getRecord(req, res) {
-
-    try {
-
-        let data = await Text.find().sort({ createdAt: -1 });
-
-        res.send({
-            result: "Done",
-            data: data
-        });
-
-    }
-
-    catch (error) {
-
         console.log(error);
 
-        res.status(500).send({
+        if (!res.headersSent) {
+            res.status(500).json({
+                result: "Fail",
+                reason: "Internal Server Error"
+            });
+        }
+        else {
+            res.end();
+        }
+    }
+}
+
+async function getRecord(req, res) {
+    try {
+        const data = await Text.find().sort({
+            createdAt: -1
+        });
+
+        res.json({
+            result: "Done",
+            data
+        });
+    }
+    catch (error) {
+        console.log(error);
+
+        res.status(500).json({
             result: "Fail",
             reason: "Internal Server Error"
         });
-
     }
-
 }
 
-
-// ======================
-// Get Single Chat
-// ======================
 async function getSingleRecord(req, res) {
-
     try {
-
-        let data = await Text.findById(req.params._id);
+        const data = await Text.findById(req.params._id);
 
         if (!data) {
-            return res.status(404).send({
+            return res.status(404).json({
                 result: "Fail",
                 reason: "Chat not found"
             });
         }
 
-        res.send({
+        res.json({
             result: "Done",
-            data: data
+            data
         });
-
     }
-
     catch (error) {
-
         console.log(error);
 
-        res.status(500).send({
+        res.status(500).json({
             result: "Fail",
             reason: "Internal Server Error"
         });
-
     }
-
 }
 
-
-// ======================
-// Delete Chat
-// ======================
 async function deleteRecord(req, res) {
-
     try {
-
         const data = await Text.findById(req.params._id);
 
         if (data) {
             await data.deleteOne();
         }
 
-        res.send({
+        res.json({
             result: "Done"
         });
-
     }
-
     catch (error) {
-
         console.log(error);
 
-        res.status(500).send({
+        res.status(500).json({
             result: "Fail",
             reason: "Internal Server Error"
         });
-
     }
-
 }
-
 
 module.exports = {
     createRecord,
