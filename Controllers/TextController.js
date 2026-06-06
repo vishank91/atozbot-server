@@ -120,7 +120,7 @@ async function createRecord(req, res) {
 
 async function getRecord(req, res) {
     try {
-        const data = await Text.find().sort({
+        const data = await Text.find({ user: req.params.userid }).sort({
             createdAt: -1
         });
 

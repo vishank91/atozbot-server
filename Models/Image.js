@@ -6,7 +6,10 @@ const ImageSchema = new mongoose.Schema({
         ref: "User",
         requied: [true, "User Id is Mendatory"]
     },
-    chat: []
+    image: {
+        type: String,
+        default: ""
+    }
 }, { timestamps: true })
 const Image = new mongoose.model("Image", ImageSchema)
 
